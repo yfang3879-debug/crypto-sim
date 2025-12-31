@@ -1,7 +1,11 @@
 const sqlite3 = require("sqlite3").verbose();
-const db = new sqlite3.Database("./exchange.db");
+const path = require("path");
 
-// ✅ 初始化数据库
+// ✅ Render 环境建议把 DB 放在项目目录下（本地/云都可用）
+const dbPath = path.join(__dirname, "exchange.db");
+const db = new sqlite3.Database(dbPath);
+
+// ✅ 初始化数据库（建表 + 默认数据）
 db.serialize(() => {
   // 1) 币种表
   db.run(`
@@ -17,7 +21,7 @@ db.serialize(() => {
       user TEXT,
       coin_symbol TEXT,
       amount REAL,
-      PRIMARY KEY (user, coin_symbol)
+      PRIMARY KEY(user, coin_symbol)
     )
   `);
 
@@ -30,7 +34,7 @@ db.serialize(() => {
       requested_amount REAL,
       approved_amount REAL,
       address TEXT,
-      status TEXT,         -- pending / approved / rejected
+      status TEXT,
       note TEXT,
       created_at TEXT,
       approved_at TEXT
@@ -46,19 +50,19 @@ db.serialize(() => {
       requested_amount REAL,
       approved_amount REAL,
       address TEXT,
-      status TEXT,         -- pending / approved / rejected
+      status TEXT,
       note TEXT,
       created_at TEXT,
       approved_at TEXT
     )
   `);
 
-  // 5) 交易记录表
+  // 5) 交易记录表（买/卖/充值/提币）
   db.run(`
     CREATE TABLE IF NOT EXISTS transactions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user TEXT,
-      type TEXT,          -- buy / sell / deposit / withdraw
+      type TEXT,
       coin_symbol TEXT,
       amount REAL,
       price REAL,
@@ -68,38 +72,44 @@ db.serialize(() => {
     )
   `);
 
-  // ✅ 6) 用户表：username + pin（简单版本，不加密）
+  // 6) 用户表（用于后续登录）
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
-      username TEXT PRIMARY KEY,
-      pin TEXT,
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE,
+      password TEXT,
       created_at TEXT
     )
   `);
 
-  // ✅ 初始化默认币种
-  db.run(`INSERT OR IGNORE INTO coins(symbol, price) VALUES ('BTC', 50000)`);
-  db.run(`INSERT OR IGNORE INTO coins(symbol, price) VALUES ('ETH', 2500)`);
-  db.run(`INSERT OR IGNORE INTO coins(symbol, price) VALUES ('BNB', 300)`);
-  db.run(`INSERT OR IGNORE INTO coins(symbol, price) VALUES ('SOL', 100)`);
-  db.run(`INSERT OR IGNORE INTO coins(symbol, price) VALUES ('USDT', 1)`);
+  // ✅ 默认币种（如果不存在才插入）
+  const defaultCoins = [
+    ["BTC", 50000],
+    ["ETH", 3000],
+    ["BNB", 600],
+    ["SOL", 100],
+    ["XRP", 0.5],
+    ["DOGE", 0.1],
+    ["USDT", 1],
+  ];
 
-  // ✅ 初始化默认用户 demo / admin
-  const now = new Date().toISOString();
-  db.run(`INSERT OR IGNORE INTO users(username, pin, created_at) VALUES ('demo', '1234', ?)`, [now]);
-  db.run(`INSERT OR IGNORE INTO users(username, pin, created_at) VALUES ('admin', 'admin123', ?)`, [now]);
+  defaultCoins.forEach(([symbol, price]) => {
+    db.run(
+      `INSERT OR IGNORE INTO coins(symbol, price) VALUES (?, ?)`,
+      [symbol, price]
+    );
+  });
 
-  // ✅ 给 demo 初始化余额
-  db.run(`
-    INSERT OR IGNORE INTO balances(user, coin_symbol, amount)
-    VALUES ('demo', 'USDT', 10000)
-  `);
+  // ✅ 默认 demo 余额（没有就插入）
+  db.run(
+    `INSERT OR IGNORE INTO balances(user, coin_symbol, amount)
+     VALUES ('demo', 'USDT', 10000)`
+  );
 
-  // ✅ 给 admin 初始化余额（可选）
-  db.run(`
-    INSERT OR IGNORE INTO balances(user, coin_symbol, amount)
-    VALUES ('admin', 'USDT', 0)
-  `);
+  db.run(
+    `INSERT OR IGNORE INTO balances(user, coin_symbol, amount)
+     VALUES ('demo', 'BTC', 0)`
+  );
 });
 
 module.exports = db;
