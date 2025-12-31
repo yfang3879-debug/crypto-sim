@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>后台管理（管理员）</title>
+  <style>
+    body{ margin:0; font-family:Arial; background:#0b0e11; color:#eaecef; }
+    .wrap{ max-width:1000px; margin:0 auto; padding:16px; }
+    .card{ background:#12161c; border:1px solid #1e2329; border-radius:14px; padding:14px; margin-bottom:12px; }
+    h1{ margin:0 0 12px; font-size:18px; }
+    h2{ margin:0 0 10px; font-size:16px; color:#fcd535; }
+    .muted{ color:#8b949e; font-size:12px; margin-bottom:10px; }
+    input{ width:100%; padding:10px; border-radius:10px; border:1px solid #2b3139; background:#0b0e11; color:#eaecef; margin-bottom:10px; box-sizing:border-box; }
+    button{ padding:10px; border:none; border-radius:10px; font-weight:bold; cursor:pointer; }
+    .yellow{ background:#fcd535; color:#111; }
+    .green{ background:#0ecb81; color:#111; }
+    .red{ background:#f6465d; color:#fff; }
+    table{ width:100%; border-collapse:collapse; font-size:13px; }
+    th,td{ padding:10px; border-top:1px solid #1e2329; text-align:left; }
+    th{ color:#8b949e; }
+    .rowActions{ display:flex; gap:8px; align-items:center; }
+    .small{ padding:8px 10px; border-radius:10px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>后台管理（管理员）</h1>
+
+    <div class="card">
+      <h2>管理员登录</h2>
+      <div class="muted">默认：admin / admin123（练手项目）</div>
+      <input id="adminUser" value="admin" placeholder="管理员账号">
+      <input id="adminPin" value="admin123" placeholder="管理员PIN" type="password">
+      <button class="yellow" onclick="adminLogin()">登录</button>
+      <div id="loginStatus" class="muted"></div>
+    </div>
+
+    <div class="card">
+      <h2>用户列表（不显示 PIN）</h2>
+      <div class="muted">可重置用户 PIN（输入新 PIN 后点重置）</div>
+      <div id="usersBox"></div>
+    </div>
+
+    <div class="card">
+      <h2>待审批充值请求</h2>
+      <div id="depositsBox"></div>
+    </div>
+
+    <div class="card">
+      <h2>待审批提币请求</h2>
+      <div id="withdrawsBox"></div>
+    </div>
+  </div>
+
+  <script>
+    function getAdminAuth(){
+      return {
+        user: localStorage.getItem("admin_user") || "",
+        pin: localStorage.getItem("admin_pin") || ""
+      };
+    }
+    function setAdminAuth(user,pin){
+      localStorage.setItem("admin_user", user);
+      localStorage.setItem("admin_pin", pin);
+    }
+
+    async function adminFetch(url, options = {}){
+      const { user, pin } = getAdminAuth();
+      const headers = Object.assign({}, options.headers || {});
+      headers["x-user"] = user;
+      headers["x-pin"] = pin;
+      return fetch(url, Object.assign({}, options, { headers }));
+    }
+
+    async function adminLogin(){
+      const u = document.getElementById("adminUser").value.trim();
+      const p = document.getElementById("adminPin").value.trim();
+      if(!u || !p){ alert("请输入管理员账号和PIN"); return; }
+      setAdminAuth(u,p);
+      document.getElementById("loginStatus").innerText = "已保存管理员登录信息。正在加载...";
+      await refreshAll();
+    }
+
+    async function refreshAll(){
+      await loadUsers();
+      await loadDeposits();
+      await loadWithdraws();
+      document.getElementById("loginStatus").innerText = "✅ 已加载数据（管理员）";
+    }
+
+    async function loadUsers(){
+      const res = await adminFetch("/api/admin/users");
+      const data = await res.json();
+      if(!res.ok){
+        document.getElementById("usersBox").innerHTML = `<div class="muted" style="color:#f6465d;">加载失败：${data.error}</div>`;
+        return;
+      }
+
+      document.getElementById("usersBox").innerHTML = `
+        <table>
+          <thead>
+            <tr><th>用户名</th><th>创建时间</th><th>重置PIN</th></tr>
+          </thead>
+          <tbody>
+            ${data.map(u=>`
+              <tr>
+                <td><b>${u.username}</b></td>
+                <td>${u.created_at || ""}</td>
+                <td>
+                  <div class="rowActions">
+                    <input id="pin_${u.username}" placeholder="新PIN(>=4)" style="margin:0;max-width:180px;">
+                    <button class="yellow small" onclick="resetPin('${u.username}')">重置</button>
+                  </div>
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    async function resetPin(username){
+      const new_pin = document.getElementById("pin_"+username).value.trim();
+      if(!new_pin || new_pin.length < 4){
+        alert("新PIN至少4位");
+        return;
+      }
+
+      const res = await adminFetch(`/api/admin/users/${username}/reset-pin`, {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ new_pin })
+      });
+      const data = await res.json();
+      if(!res.ok){
+        alert("失败：" + (data.error || "unknown"));
+        return;
+      }
+      alert("✅ 已重置 " + username + " 的PIN");
+      document.getElementById("pin_"+username).value = "";
+    }
+
+    async function loadDeposits(){
+      const res = await adminFetch("/api/admin/deposits");
+      const list = await res.json();
+      if(!res.ok){
+        document.getElementById("depositsBox").innerHTML = `<div class="muted" style="color:#f6465d;">加载失败：${list.error}</div>`;
+        return;
+      }
+
+      const pending = list.filter(x=>x.status==="pending");
+      if(pending.length === 0){
+        document.getElementById("depositsBox").innerHTML = `<div class="muted">暂无待审批充值</div>`;
+        return;
+      }
+
+      document.getElementById("depositsBox").innerHTML = pending.map(d=>`
+        <div class="card" style="margin:0 0 10px;">
+          <div>请求ID：<b>${d.id}</b></div>
+          <div>用户：<b>${d.user}</b></div>
+          <div>币种：<b>${d.coin_symbol}</b></div>
+          <div>申请金额：<b>${d.requested_amount}</b></div>
+          <div>状态：<b>${d.status}</b></div>
+          <div style="height:10px"></div>
+          <input id="dep_amount_${d.id}" value="${d.requested_amount}" placeholder="批准金额">
+          <input id="dep_note_${d.id}" placeholder="备注（可选）">
+          <button class="green" onclick="approveDeposit(${d.id})">确认审批充值</button>
+        </div>
+      `).join("");
+    }
+
+    async function approveDeposit(id){
+      const approved_amount = parseFloat(document.getElementById("dep_amount_"+id).value);
+      const note = document.getElementById("dep_note_"+id).value.trim();
+
+      const res = await adminFetch(`/api/admin/deposits/${id}/approve`, {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ approved_amount, note })
+      });
+
+      const data = await res.json();
+      if(!res.ok){
+        alert("失败：" + (data.error || "unknown"));
+        return;
+      }
+      alert("✅ 充值审批成功，已更新余额");
+      loadDeposits();
+    }
+
+    async function loadWithdraws(){
+      const res = await adminFetch("/api/admin/withdraws");
+      const list = await res.json();
+      if(!res.ok){
+        document.getElementById("withdrawsBox").innerHTML = `<div class="muted" style="color:#f6465d;">加载失败：${list.error}</div>`;
+        return;
+      }
+
+      const pending = list.filter(x=>x.status==="pending");
+      if(pending.length === 0){
+        document.getElementById("withdrawsBox").innerHTML = `<div class="muted">暂无待审批提币</div>`;
+        return;
+      }
+
+      document.getElementById("withdrawsBox").innerHTML = pending.map(w=>`
+        <div class="card" style="margin:0 0 10px;">
+          <div>请求ID：<b>${w.id}</b></div>
+          <div>用户：<b>${w.user}</b></div>
+          <div>币种：<b>${w.coin_symbol}</b></div>
+          <div>申请金额：<b>${w.requested_amount}</b></div>
+          <div>地址：<b>${w.address || ""}</b></div>
+          <div>状态：<b>${w.status}</b></div>
+          <div style="height:10px"></div>
+          <input id="wd_amount_${w.id}" value="${w.requested_amount}" placeholder="批准金额">
+          <input id="wd_note_${w.id}" placeholder="备注（可选）">
+          <button class="green" onclick="approveWithdraw(${w.id})">确认审批提币</button>
+        </div>
+      `).join("");
+    }
+
+    async function approveWithdraw(id){
+      const approved_amount = parseFloat(document.getElementById("wd_amount_"+id).value);
+      const note = document.getElementById("wd_note_"+id).value.trim();
+
+      const res = await adminFetch(`/api/admin/withdraws/${id}/approve`, {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ approved_amount, note })
+      });
+
+      const data = await res.json();
+      if(!res.ok){
+        alert("失败：" + (data.error || "unknown"));
+        return;
+      }
+      alert("✅ 提币审批成功，已扣余额并写交易记录");
+      loadWithdraws();
+    }
+
+    // auto load if already logged in
+    window.onload = () => {
+      const { user, pin } = getAdminAuth();
+      if(user && pin){
+        document.getElementById("loginStatus").innerText = "检测到已保存管理员登录，正在加载...";
+        refreshAll();
+      }
+    };
+  </script>
+</body>
+</html>

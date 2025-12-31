@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>SIM Exchange</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+
+  <style>
+    :root{
+      --bg:#0b0e11;
+      --panel:#12161c;
+      --line:#1e2329;
+      --text:#eaecef;
+      --muted:#8b949e;
+      --yellow:#fcd535;
+      --green:#0ecb81;
+      --red:#f6465d;
+    }
+    body { margin:0; font-family:Arial, Helvetica, sans-serif; background:var(--bg); color:var(--text); overflow:hidden; }
+    a{ color:var(--text); text-decoration:none; }
+
+    .topbar { height:56px; display:flex; align-items:center; justify-content:space-between; padding:0 16px; background:var(--panel); border-bottom:1px solid var(--line); }
+    .brand { display:flex; gap:10px; align-items:center; font-weight:bold; font-size:16px; }
+    .badge { font-size:12px; padding:4px 10px; border-radius:999px; background:var(--yellow); color:#111; font-weight:bold; }
+    .nav{ display:flex; gap:18px; align-items:center; font-size:14px; color:var(--muted); margin-left:18px; }
+    .nav a{ color:var(--muted); } .nav a:hover{ color:var(--text); }
+    .rightActions{ display:flex; gap:10px; align-items:center; font-size:14px; color:var(--muted); }
+    .btnSmall{ padding:7px 12px; border-radius:10px; border:1px solid #2b3139; background:transparent; color:var(--text); cursor:pointer; font-weight:bold; }
+    .btnYellow{ padding:7px 12px; border-radius:10px; border:none; background:var(--yellow); color:#111; cursor:pointer; font-weight:bold; }
+    .btnRed{ padding:7px 12px; border-radius:10px; border:none; background:var(--red); color:#fff; cursor:pointer; font-weight:bold; }
+    .userTag{ padding:7px 12px; border-radius:10px; border:1px solid #2b3139; background:#0b0e11; color:var(--text); font-weight:bold; }
+
+    .overviewWrap{ background:var(--bg); border-bottom:1px solid var(--line); padding:12px 16px; }
+    .overview{ max-width:1400px; margin:0 auto; display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; }
+    .card{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:12px; box-shadow:0 10px 25px rgba(0,0,0,0.15); min-height:86px; }
+    .cardTop{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+    .cardTitle{ font-size:13px; color:var(--muted); font-weight:bold; letter-spacing:0.3px; }
+    .more{ font-size:12px; color:var(--muted); cursor:pointer; }
+    .more:hover{ color:var(--text); }
+
+    .miniRow{ display:flex; align-items:center; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(30,35,41,0.6); font-size:13px; }
+    .miniRow:last-child{ border-bottom:none; }
+    .miniSym{ font-weight:bold; display:flex; align-items:center; gap:8px; }
+    .miniPrice{ color:var(--text); font-weight:bold; }
+    .miniChgUp{ color:var(--green); font-weight:bold; }
+    .miniChgDn{ color:var(--red); font-weight:bold; }
+
+    .coinIcon{ width:18px; height:18px; border-radius:50%; vertical-align:middle; }
+    .coinNameRow{ display:flex; align-items:center; gap:8px; }
+
+    .layout{ display:grid; grid-template-columns:260px 1fr 340px; grid-template-rows:1fr 340px; height:calc(100vh - 56px - 122px); }
+
+    .left{ grid-row:1 / span 2; border-right:1px solid var(--line); background:var(--bg); overflow:auto; }
+    .panelTitle{ padding:14px 14px; font-size:13px; color:var(--muted); border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0; z-index:2; }
+
+    .coinItem{ padding:12px 14px; border-bottom:1px solid var(--line); cursor:pointer; display:flex; align-items:center; justify-content:space-between; font-size:14px; }
+    .coinItem:hover{ background:var(--panel); } .coinItem.active{ background:#1e2329; }
+    .price{ font-weight:bold; color:var(--yellow); }
+
+    .center{ background:var(--bg); border-right:1px solid var(--line); overflow:hidden; }
+    .chartHeader{ height:44px; display:flex; align-items:center; justify-content:space-between; padding:0 12px; border-bottom:1px solid var(--line); background:var(--panel); font-size:14px; }
+    .intervals{ display:flex; align-items:center; gap:6px; flex-wrap:nowrap; }
+    .intervals button{ background:transparent; border:1px solid #2b3139; color:var(--muted); padding:6px 10px; border-radius:8px; cursor:pointer; font-weight:bold; width:auto; }
+    .intervals button.active{ border-color:var(--yellow); color:var(--yellow); }
+    #chart{ height:calc(100% - 44px); width:100%; }
+
+    .right{ background:var(--bg); overflow:auto; }
+    .tradeCard{ margin:12px; border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:12px; }
+    .tradeCard h3{ margin:0 0 10px; font-size:14px; color:#b7bdc6; }
+    .muted{ color:var(--muted); font-size:12px; margin-bottom:8px; }
+
+    input{ width:100%; background:var(--bg); border:1px solid #2b3139; color:var(--text); padding:10px; border-radius:10px; outline:none; margin-bottom:10px; box-sizing:border-box; }
+    button{ width:100%; padding:10px; border:none; border-radius:10px; font-weight:bold; cursor:pointer; font-size:14px; }
+    .buy{ background:var(--green); color:#111; }
+    .sell{ background:var(--red); color:#fff; }
+    .yellow{ background:var(--yellow); color:#111; }
+    .result{ margin-top:10px; font-size:12px; padding:10px; border-radius:10px; background:var(--bg); border:1px solid #2b3139; white-space:pre-wrap; }
+
+    .bottom{ grid-column:2 / span 2; background:var(--bg); border-top:1px solid var(--line); overflow:auto; padding:12px; }
+    .bottomGrid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+    .list{ max-height:220px; overflow:auto; padding-right:6px; }
+    .listItem{ padding:8px 10px; border:1px solid var(--line); border-radius:10px; background:var(--panel); margin-bottom:8px; font-size:13px; }
+
+    table{ width:100%; border-collapse:collapse; font-size:13px; }
+    thead{ background:var(--panel); }
+    th{ text-align:left; padding:10px; color:var(--muted); font-weight:bold; }
+    td{ padding:10px; }
+    tr{ border-top:1px solid var(--line); }
+    .rightNum{ text-align:right; }
+
+    /* ===== Modal ===== */
+    .modalBack{
+      position:fixed; inset:0; background:rgba(0,0,0,0.65);
+      display:none; align-items:center; justify-content:center;
+      z-index:9999;
+    }
+    .modal{
+      width:360px; background:var(--panel); border:1px solid var(--line); border-radius:14px;
+      padding:16px;
+      box-shadow:0 20px 50px rgba(0,0,0,0.35);
+    }
+    .modal h2{ margin:0 0 10px; font-size:16px; }
+    .modal .tabs{ display:flex; gap:8px; margin-bottom:10px; }
+    .tabBtn{
+      flex:1; padding:10px; border-radius:10px; border:1px solid #2b3139;
+      background:transparent; color:var(--text); cursor:pointer; font-weight:bold;
+    }
+    .tabBtn.active{ border-color:var(--yellow); color:var(--yellow); }
+    .modalNote{ font-size:12px; color:var(--muted); margin-bottom:10px; }
+    .modalError{ font-size:12px; color:var(--red); margin-top:8px; }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div style="display:flex;align-items:center;">
+      <div class="brand">SIM Exchange <span class="badge">DEMO</span></div>
+      <div class="nav">
+        <a href="#">Markets</a><a href="#">Trade</a><a href="#">Futures</a><a href="#">Earn</a><a href="#">More</a>
+      </div>
+    </div>
+    <div class="rightActions">
+      <div class="userTag" id="userTag">Current User: (not logged in)</div>
+      <button class="btnSmall" onclick="openAuth()">Login / Register</button>
+      <button class="btnRed" onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="overviewWrap">
+    <div class="overview">
+      <div class="card"><div class="cardTop"><div class="cardTitle">Hot</div><div class="more">More</div></div><div id="card_hot"></div></div>
+      <div class="card"><div class="cardTop"><div class="cardTitle">Top Gainers</div><div class="more">More</div></div><div id="card_gainers"></div></div>
+      <div class="card"><div class="cardTop"><div class="cardTitle">Top Losers</div><div class="more">More</div></div><div id="card_losers"></div></div>
+      <div class="card"><div class="cardTop"><div class="cardTitle">Most Traded</div><div class="more">More</div></div><div id="card_volume"></div></div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="left">
+      <div class="panelTitle">Markets (USDT)</div>
+      <div id="coinList"></div>
+    </div>
+
+    <div class="center">
+      <div class="chartHeader">
+        <div class="coinNameRow">
+          <img id="chartIcon" class="coinIcon" src="" onerror="this.style.display='none'">
+          <b id="chartSymbolText">BTC/USDT</b>
+          <span class="muted" id="chartPriceText"></span>
+        </div>
+        <div class="intervals">
+          <button onclick="setIntervalK('1m')" id="btn_1m" class="active">1m</button>
+          <button onclick="setIntervalK('3m')" id="btn_3m">3m</button>
+          <button onclick="setIntervalK('5m')" id="btn_5m">5m</button>
+          <button onclick="setIntervalK('15m')" id="btn_15m">15m</button>
+          <button onclick="setIntervalK('30m')" id="btn_30m">30m</button>
+          <button onclick="setIntervalK('1h')" id="btn_1h">1h</button>
+          <button onclick="setIntervalK('4h')" id="btn_4h">4h</button>
+          <button onclick="setIntervalK('1d')" id="btn_1d">1d</button>
+        </div>
+      </div>
+      <div id="chart"></div>
+    </div>
+
+    <div class="right">
+      <div class="tradeCard">
+        <h3>Buy / Sell</h3>
+        <div class="muted">Simple login: username + PIN (no JWT, demo)</div>
+
+        <input id="tradeAmount" type="number" value="0.01" step="0.01" />
+        <button class="buy" onclick="buyNow()">Buy</button>
+        <div style="height:10px"></div>
+        <button class="sell" onclick="sellNow()">Sell</button>
+
+        <div class="result" id="result">(Result output)</div>
+      </div>
+
+      <div class="tradeCard">
+        <h3>Deposit Request</h3>
+        <input id="depositAmount" type="number" value="100" step="1" />
+        <button class="yellow" onclick="depositRequest()">Submit</button>
+      </div>
+
+      <div class="tradeCard">
+        <h3>Withdraw Request</h3>
+        <input id="withdrawAmount" type="number" value="50" step="1" />
+        <input id="withdrawAddress" type="text" value="0x123..." />
+        <button class="yellow" onclick="withdrawRequest()">Submit</button>
+      </div>
+
+      <div class="tradeCard">
+        <h3>Admin Panel</h3>
+        <div class="muted">Chinese admin backend</div>
+        <button class="btnYellow" onclick="window.open('/admin.html','_blank')">Open Admin</button>
+      </div>
+    </div>
+
+    <div class="bottom">
+      <div style="margin-bottom:14px;">
+        <h3 style="margin:0 0 8px">Market (USDT)</h3>
+        <div class="muted">Live from Binance 24h ticker (public)</div>
+        <div style="border:1px solid var(--line); border-radius:12px; overflow:hidden;">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th class="rightNum">Price</th>
+                <th class="rightNum">24h Change</th>
+                <th class="rightNum">24h Volume (USDT)</th>
+              </tr>
+            </thead>
+            <tbody id="marketTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="bottomGrid">
+        <div>
+          <h3 style="margin:0 0 6px">Balance</h3>
+          <div class="muted">Your own virtual assets</div>
+          <div id="balanceList" class="list"></div>
+        </div>
+        <div>
+          <h3 style="margin:0 0 6px">Requests</h3>
+          <div class="muted">Deposit & Withdraw status</div>
+          <div id="requestList" class="list"></div>
+        </div>
+        <div>
+          <h3 style="margin:0 0 6px">Transaction History</h3>
+          <div class="muted">buy / sell / deposit / withdraw</div>
+          <div id="txList" class="list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ Auth Modal -->
+  <div class="modalBack" id="authBack">
+    <div class="modal">
+      <h2>Login / Register</h2>
+      <div class="tabs">
+        <button class="tabBtn active" id="tabLogin" onclick="switchTab('login')">Login</button>
+        <button class="tabBtn" id="tabRegister" onclick="switchTab('register')">Register</button>
+      </div>
+      <div class="modalNote">This is a demo system. PIN is simple and stored plain text (practice project).</div>
+      <input id="authUser" placeholder="Username (e.g. david)" />
+      <input id="authPin" placeholder="PIN (min 4 chars)" type="password" />
+      <button class="btnYellow" onclick="submitAuth()">Submit</button>
+      <div class="modalError" id="authError"></div>
+      <div style="height:10px"></div>
+      <button class="btnSmall" onclick="closeAuth()">Close</button>
+    </div>
+  </div>
+
+  <script>
+    let selectedCoin = "BTC";
+    let intervalK = "1m";
+    let authMode = "login";
+
+    // ✅ Coin icons
+    const ICONS = {
+      BTC: "https://cryptologos.cc/logos/bitcoin-btc-logo.png?v=032",
+      ETH: "https://cryptologos.cc/logos/ethereum-eth-logo.png?v=032",
+      BNB: "https://cryptologos.cc/logos/bnb-bnb-logo.png?v=032",
+      SOL: "https://cryptologos.cc/logos/solana-sol-logo.png?v=032",
+      XRP: "https://cryptologos.cc/logos/xrp-xrp-logo.png?v=032",
+      ADA: "https://cryptologos.cc/logos/cardano-ada-logo.png?v=032",
+      DOGE: "https://cryptologos.cc/logos/dogecoin-doge-logo.png?v=032",
+      TRX: "https://cryptologos.cc/logos/tron-trx-logo.png?v=032",
+      TON: "https://cryptologos.cc/logos/toncoin-ton-logo.png?v=032",
+      AVAX: "https://cryptologos.cc/logos/avalanche-avax-logo.png?v=032",
+      USDT: "https://cryptologos.cc/logos/tether-usdt-logo.png?v=032",
+    };
+
+    // ✅ Auth storage
+    function getAuth(){
+      return {
+        user: localStorage.getItem("sim_user") || "",
+        pin: localStorage.getItem("sim_pin") || ""
+      };
+    }
+    function setAuth(user, pin){
+      localStorage.setItem("sim_user", user);
+      localStorage.setItem("sim_pin", pin);
+      updateUserTag();
+    }
+    function clearAuth(){
+      localStorage.removeItem("sim_user");
+      localStorage.removeItem("sim_pin");
+      updateUserTag();
+    }
+    function updateUserTag(){
+      const { user } = getAuth();
+      document.getElementById("userTag").innerText = user ? `Current User: ${user}` : "Current User: (not logged in)";
+    }
+
+    // ✅ fetch wrapper: auto attach x-user/x-pin
+    async function apiFetch(url, options = {}){
+      const { user, pin } = getAuth();
+      const headers = Object.assign({}, options.headers || {});
+      if (user && pin){
+        headers["x-user"] = user;
+        headers["x-pin"] = pin;
+      }
+      return fetch(url, Object.assign({}, options, { headers }));
+    }
+
+    // ===== Modal control =====
+    function openAuth(){
+      document.getElementById("authBack").style.display = "flex";
+      document.getElementById("authError").innerText = "";
+      document.getElementById("authUser").value = getAuth().user || "";
+      document.getElementById("authPin").value = "";
+    }
+    function closeAuth(){
+      document.getElementById("authBack").style.display = "none";
+    }
+    function switchTab(mode){
+      authMode = mode;
+      document.getElementById("tabLogin").classList.toggle("active", mode==="login");
+      document.getElementById("tabRegister").classList.toggle("active", mode==="register");
+      document.getElementById("authError").innerText = "";
+    }
+    async function submitAuth(){
+      const username = document.getElementById("authUser").value.trim();
+      const pin = document.getElementById("authPin").value.trim();
+
+      if (!username || !pin){
+        document.getElementById("authError").innerText = "Username and PIN required.";
+        return;
+      }
+
+      const url = authMode === "login" ? "/api/auth/login" : "/api/auth/register";
+
+      const res = await fetch(url, {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ username, pin })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok){
+        document.getElementById("authError").innerText = data.error || "Auth failed";
+        return;
+      }
+
+      setAuth(username, pin);
+      closeAuth();
+
+      // 切换用户后刷新所有数据
+      await refreshAll();
+    }
+
+    function logout(){
+      clearAuth();
+      openAuth();
+    }
+
+    // ===== Chart init =====
+    const chartEl = document.getElementById("chart");
+    function getChartSize(){ return { width: chartEl.clientWidth || 800, height: chartEl.clientHeight || 500 }; }
+
+    const chart = LightweightCharts.createChart(chartEl, {
+      ...getChartSize(),
+      layout: { background: { color: "#0b0e11" }, textColor: "#d1d4dc" },
+      grid: { vertLines: { color: "#1e2329" }, horzLines: { color: "#1e2329" } },
+      timeScale: { borderColor: "#1e2329", timeVisible: true, secondsVisible: true },
+      rightPriceScale: { borderColor: "#1e2329" },
+      crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+      localization: { locale: "en-US" }
+    });
+    const candleSeries = chart.addCandlestickSeries();
+
+    setTimeout(() => { const s=getChartSize(); chart.resize(s.width, s.height); }, 300);
+    window.addEventListener("resize", () => { const s=getChartSize(); chart.resize(s.width, s.height); });
+
+    // ===== Helpers =====
+    function formatNumber(n){
+      if(!n) return "0";
+      if(n >= 1e12) return (n/1e12).toFixed(2) + "T";
+      if(n >= 1e9) return (n/1e9).toFixed(2) + "B";
+      if(n >= 1e6) return (n/1e6).toFixed(2) + "M";
+      if(n >= 1e3) return (n/1e3).toFixed(2) + "K";
+      return n.toFixed(2);
+    }
+    function miniRow(sym, price, chg, mode){
+      const cls = mode==="dn" ? "miniChgDn" : "miniChgUp";
+      const icon = ICONS[sym] || "";
+      return `
+        <div class="miniRow">
+          <div class="miniSym">
+            <img class="coinIcon" src="${icon}" onerror="this.style.display='none'">
+            ${sym}
+          </div>
+          <div class="miniPrice">${Number(price||0).toFixed(2)}</div>
+          <div class="${cls}">${chg}</div>
+        </div>
+      `;
+    }
+
+    // ===== Interval buttons =====
+    function setIntervalK(i){
+      intervalK=i;
+      const all=["1m","3m","5m","15m","30m","1h","4h","1d"];
+      all.forEach(x=>{ const btn=document.getElementById("btn_"+x); if(btn) btn.classList.remove("active"); });
+      const current=document.getElementById("btn_"+i);
+      if(current) current.classList.add("active");
+      loadKline();
+    }
+
+    // ===== Markets (coins from server DB) =====
+    async function loadCoins(){
+      const res = await fetch("/api/coins");
+      const coins = await res.json();
+      const list = coins.filter(c=>c.symbol!=="USDT");
+
+      document.getElementById("coinList").innerHTML = list.map(c=>`
+        <div class="coinItem ${c.symbol===selectedCoin?"active":""}" onclick="selectCoin('${c.symbol}')">
+          <div class="coinNameRow">
+            <img class="coinIcon" src="${ICONS[c.symbol]||''}" onerror="this.style.display='none'">
+            <div>${c.symbol}/USDT</div>
+          </div>
+          <div class="price">${Number(c.price||0).toFixed(2)}</div>
+        </div>
+      `).join("");
+
+      const selected = list.find(x=>x.symbol===selectedCoin);
+      if(selected){
+        document.getElementById("chartSymbolText").innerText = selectedCoin+"/USDT";
+        document.getElementById("chartPriceText").innerText = "  " + Number(selected.price||0).toFixed(2);
+        const iconUrl = ICONS[selectedCoin] || "";
+        const iconEl = document.getElementById("chartIcon");
+        iconEl.src = iconUrl;
+        iconEl.style.display = iconUrl ? "inline-block" : "none";
+      }
+    }
+
+    function selectCoin(symbol){
+      selectedCoin = symbol;
+      loadCoins();
+      loadKline();
+    }
+
+    async function loadKline(){
+      try{
+        const symbol = selectedCoin + "USDT";
+        const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${intervalK}&limit=200`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const candles = data.map(k=>({
+          time: k[0]/1000,
+          open: parseFloat(k[1]),
+          high: parseFloat(k[2]),
+          low: parseFloat(k[3]),
+          close: parseFloat(k[4]),
+        }));
+        candleSeries.setData(candles);
+      }catch(e){
+        document.getElementById("result").innerText = "Kline load failed: " + e.message;
+      }
+    }
+
+    // ===== Binance 24h ticker: table + cards =====
+    const SYMBOL_LIST = ["BTCUSDT","ETHUSDT","BNBUSDT","SOLUSDT","XRPUSDT","ADAUSDT","DOGEUSDT","TRXUSDT","TONUSDT","AVAXUSDT"];
+    async function loadMarketTableAndCards(){
+      try{
+        const res = await fetch("https://api.binance.com/api/v3/ticker/24hr");
+        const all = await res.json();
+
+        const filtered = all
+          .filter(x=>SYMBOL_LIST.includes(x.symbol))
+          .map(x=>({
+            symbol: x.symbol.replace("USDT",""),
+            price: Number(x.lastPrice),
+            change: Number(x.priceChangePercent),
+            volumeUSDT: Number(x.quoteVolume)
+          }));
+
+        const tableList = [...filtered].sort((a,b)=> b.volumeUSDT - a.volumeUSDT);
+
+        document.getElementById("marketTableBody").innerHTML = tableList.map(m=>{
+          const cls = m.change>=0 ? "miniChgUp" : "miniChgDn";
+          const txt = (m.change>=0?"+":"") + m.change.toFixed(2) + "%";
+          const icon = ICONS[m.symbol] || "";
+          return `
+            <tr>
+              <td>
+                <span class="coinNameRow">
+                  <img class="coinIcon" src="${icon}" onerror="this.style.display='none'">
+                  <b>${m.symbol}</b> <span class="muted">/USDT</span>
+                </span>
+              </td>
+              <td class="rightNum">${m.price.toFixed(2)}</td>
+              <td class="rightNum"><span class="${cls}">${txt}</span></td>
+              <td class="rightNum">${formatNumber(m.volumeUSDT)}</td>
+            </tr>
+          `;
+        }).join("");
+
+        const hot = tableList.slice(0,3);
+        const gainers = [...filtered].sort((a,b)=> b.change-a.change).slice(0,3);
+        const losers = [...filtered].sort((a,b)=> a.change-b.change).slice(0,3);
+        const volume = tableList.slice(0,3);
+
+        document.getElementById("card_hot").innerHTML = hot.map(c=>{
+          const chg = (c.change>=0?"+":"")+c.change.toFixed(2)+"%";
+          return miniRow(c.symbol, c.price, chg, c.change>=0?"up":"dn");
+        }).join("");
+
+        document.getElementById("card_gainers").innerHTML = gainers.map(c=>{
+          const chg = (c.change>=0?"+":"")+c.change.toFixed(2)+"%";
+          return miniRow(c.symbol, c.price, chg, "up");
+        }).join("");
+
+        document.getElementById("card_losers").innerHTML = losers.map(c=>{
+          const chg = (c.change>=0?"+":"")+c.change.toFixed(2)+"%";
+          return miniRow(c.symbol, c.price, chg, "dn");
+        }).join("");
+
+        document.getElementById("card_volume").innerHTML = volume.map(c=>{
+          const chg = (c.change>=0?"+":"")+c.change.toFixed(2)+"%";
+          return miniRow(c.symbol, c.price, chg, c.change>=0?"up":"dn");
+        }).join("");
+
+      }catch(e){
+        document.getElementById("marketTableBody").innerHTML =
+          `<tr><td colspan="4" style="color:var(--red);padding:10px;">Market load failed: ${e.message}</td></tr>`;
+      }
+    }
+
+    // ===== Logged user data =====
+    async function loadBalance(){
+      const res = await apiFetch("/api/balance");
+      const data = await res.json();
+      if(!res.ok) return;
+      document.getElementById("balanceList").innerHTML =
+        data.map(b=>`<div class="listItem"><b>${b.coin_symbol}</b>: ${b.amount}</div>`).join("");
+    }
+
+    async function loadRequests(){
+      const depRes = await apiFetch("/api/deposit-requests");
+      const wdRes = await apiFetch("/api/withdraw-requests");
+      const dep = await depRes.json();
+      const wd = await wdRes.json();
+      if(!depRes.ok || !wdRes.ok) return;
+
+      const depHtml = dep.map(d=>`<div class="listItem">Deposit #${d.id} ${d.coin_symbol} ${d.requested_amount} <b>${d.status}</b></div>`).join("");
+      const wdHtml = wd.map(w=>`<div class="listItem">Withdraw #${w.id} ${w.coin_symbol} ${w.requested_amount} <b>${w.status}</b></div>`).join("");
+      document.getElementById("requestList").innerHTML = depHtml + wdHtml;
+    }
+
+    async function loadTransactions(){
+      const res = await apiFetch("/api/transactions");
+      const list = await res.json();
+      if(!res.ok) return;
+      document.getElementById("txList").innerHTML =
+        list.map(t=>`<div class="listItem">#${t.id} <b>${t.type.toUpperCase()}</b> ${t.coin_symbol} ${t.amount}</div>`).join("");
+    }
+
+    // ===== Actions =====
+    async function buyNow(){
+      const amount = parseFloat(document.getElementById("tradeAmount").value);
+      const res = await apiFetch("/api/buy", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ symbol: selectedCoin, amount })
+      });
+      const data = await res.json();
+      document.getElementById("result").innerText = JSON.stringify(data, null, 2);
+      refreshUserData();
+    }
+
+    async function sellNow(){
+      const amount = parseFloat(document.getElementById("tradeAmount").value);
+      const res = await apiFetch("/api/sell", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ symbol: selectedCoin, amount })
+      });
+      const data = await res.json();
+      document.getElementById("result").innerText = JSON.stringify(data, null, 2);
+      refreshUserData();
+    }
+
+    async function depositRequest(){
+      const amount = parseFloat(document.getElementById("depositAmount").value);
+      const res = await apiFetch("/api/deposit-request", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ coin_symbol:"USDT", requested_amount: amount })
+      });
+      const data = await res.json();
+      document.getElementById("result").innerText = JSON.stringify(data, null, 2);
+      refreshUserData();
+    }
+
+    async function withdrawRequest(){
+      const amount = parseFloat(document.getElementById("withdrawAmount").value);
+      const address = document.getElementById("withdrawAddress").value.trim();
+      const res = await apiFetch("/api/withdraw-request", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ coin_symbol:"USDT", requested_amount: amount, address })
+      });
+      const data = await res.json();
+      document.getElementById("result").innerText = JSON.stringify(data, null, 2);
+      refreshUserData();
+    }
+
+    async function refreshUserData(){
+      await loadBalance();
+      await loadRequests();
+      await loadTransactions();
+    }
+
+    async function refreshAll(){
+      updateUserTag();
+      await loadCoins();
+      await loadMarketTableAndCards();
+      await loadKline();
+      await refreshUserData();
+    }
+
+    // ===== Init =====
+    async function init(){
+      updateUserTag();
+      await loadCoins();
+      await loadMarketTableAndCards();
+      await loadKline();
+
+      const { user, pin } = getAuth();
+      if(!user || !pin){
+        openAuth();
+        return;
+      }
+
+      await refreshUserData();
+
+      setInterval(() => {
+        loadCoins();
+        loadMarketTableAndCards();
+        refreshUserData();
+      }, 2000);
+    }
+
+    init();
+  </script>
+</body>
+</html>
