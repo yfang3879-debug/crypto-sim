@@ -434,7 +434,8 @@ app.post("/api/admin/withdraws/:id/approve", adminRequired, (req, res) => {
 });
 
 // ✅ Server start
-app.listen(3000, () => {
-  console.log("✅ Server running: http://localhost:3000");
-  console.log("✅ Admin page: http://localhost:3000/admin.html");
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log("✅ Server running on port", PORT);
 });
