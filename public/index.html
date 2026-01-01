@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Sim Exchange</title>
@@ -10,327 +10,373 @@
       background: #0b0e11;
       color: #eaecef;
     }
+
     header {
-      height: 50px;
-      background: #101418;
+      height: 48px;
       display: flex;
       align-items: center;
-      padding: 0 16px;
       justify-content: space-between;
-      border-bottom: 1px solid #222;
+      padding: 0 16px;
+      background: #11161c;
+      border-bottom: 1px solid #1e2329;
     }
+
     header .left {
       font-weight: bold;
       font-size: 16px;
     }
+
     header .right {
       font-size: 14px;
-      opacity: 0.9;
+      color: #cfcfcf;
     }
 
     .container {
       display: grid;
       grid-template-columns: 260px 1fr 320px;
-      grid-template-rows: auto 260px 260px;
       gap: 12px;
       padding: 12px;
-    }
-
-    .card {
-      background: #101418;
-      border: 1px solid #1f2a37;
-      border-radius: 12px;
-      padding: 14px;
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.02);
-    }
-
-    .markets { grid-row: 1 / span 3; }
-    .chart { grid-row: 1 / span 2; }
-    .trade { grid-row: 1 / span 1; }
-    .requests { grid-row: 2 / span 1; grid-column: 3; }
-    .history { grid-row: 3; grid-column: 2 / span 2; }
-
-    h2 {
-      font-size: 16px;
-      margin: 0 0 10px;
-      font-weight: bold;
-    }
-    .muted { opacity: 0.7; font-size: 12px; }
-
-    button {
-      cursor: pointer;
-      border: none;
-      border-radius: 8px;
-      padding: 10px;
-      font-weight: bold;
-      background: #f0b90b;
-      color: #111;
-    }
-    button:hover { opacity: 0.9; }
-
-    input {
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #2a3645;
-      background: #0b0e11;
-      color: #eaecef;
+      height: calc(100vh - 48px);
       box-sizing: border-box;
     }
 
-    .row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
-    .row label { width: 70px; font-size: 13px; }
-    .row input { flex: 1; }
-    .row button { width: 90px; }
+    .panel {
+      background: #11161c;
+      border: 1px solid #1e2329;
+      border-radius: 12px;
+      padding: 12px;
+      overflow: auto;
+    }
 
-    ul { margin: 0; padding-left: 18px; }
-    li { margin-bottom: 6px; }
+    h3 {
+      margin: 0 0 8px 0;
+      font-size: 15px;
+    }
+
+    .market-item {
+      padding: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .market-item:hover {
+      background: rgba(255,255,255,0.05);
+    }
+    .market-item.active {
+      background: rgba(240,185,11,0.12);
+      border: 1px solid #f0b90b;
+    }
 
     .intervals {
       display: flex;
       gap: 8px;
-      margin-bottom: 10px;
-      flex-wrap: wrap;
+      margin: 8px 0 12px 0;
     }
     .intervals button {
+      padding: 6px 10px;
+      border: 1px solid #2b3139;
       background: #0b0e11;
       color: #eaecef;
-      border: 1px solid #2a3645;
-      padding: 6px 12px;
-      font-weight: normal;
+      border-radius: 8px;
+      cursor: pointer;
     }
     .intervals button.active {
       background: #f0b90b;
       color: #111;
       font-weight: bold;
+      border: none;
     }
 
-    #chartContainer {
-      height: 420px;
-      width: 100%;
-      border-radius: 8px;
+    #chart {
+      height: calc(100% - 60px);
+      border-radius: 12px;
       overflow: hidden;
     }
+
+    .btn {
+      background: #f0b90b;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      color: #111;
+      margin-left: 6px;
+    }
+
+    input {
+      width: 120px;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #2b3139;
+      background: #0b0e11;
+      color: #eaecef;
+      outline: none;
+    }
+
+    .row {
+      margin: 10px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .small {
+      font-size: 12px;
+      color: #9aa4ad;
+      margin-top: 4px;
+    }
+
+    ul { padding-left: 18px; }
+    li { margin: 4px 0; }
   </style>
 </head>
+
 <body>
-  <header>
-    <div class="left">Sim Exchange</div>
-    <div class="right">Account: demo <span id="topBalance"></span></div>
-  </header>
+<header>
+  <div class="left">Sim Exchange</div>
+  <div class="right" id="topInfo">Account: demo | USDT: --</div>
+</header>
 
-  <div class="container">
-    <!-- MARKETS -->
-    <div class="card markets">
-      <h2>Markets</h2>
-      <p class="muted">Click a coin to view chart.</p>
-      <ul id="coins"></ul>
-    </div>
-
-    <!-- CHART -->
-    <div class="card chart">
-      <h2 id="pairTitle">BTC/USDT</h2>
-
-      <div class="intervals" id="intervalButtons">
-        <button class="active" data-interval="1m">1m</button>
-        <button data-interval="5m">5m</button>
-        <button data-interval="15m">15m</button>
-        <button data-interval="1h">1h</button>
-        <button data-interval="4h">4h</button>
-        <button data-interval="1d">1d</button>
-      </div>
-
-      <div id="chartContainer"></div>
-    </div>
-
-    <!-- TRADE -->
-    <div class="card trade">
-      <h2>Trade <span class="muted">(Demo)</span></h2>
-
-      <div class="row">
-        <label>Buy</label>
-        <input id="buyAmount" type="number" value="0.01" step="0.01">
-        <button onclick="buyBTC()">Buy</button>
-      </div>
-
-      <div class="row">
-        <label>Sell</label>
-        <input id="sellAmount" type="number" value="0.01" step="0.01">
-        <button onclick="sellBTC()">Sell</button>
-      </div>
-
-      <h2>Deposit Request</h2>
-      <div class="row">
-        <input id="depositAmount" type="number" value="100">
-        <button onclick="depositRequest()">Submit</button>
-      </div>
-
-      <h2>Withdraw Request</h2>
-      <div class="row">
-        <input id="withdrawAmount" type="number" value="50">
-        <button onclick="withdrawRequest()">Submit</button>
-      </div>
-
-      <p id="result" class="muted">Ready.</p>
-    </div>
-
-    <!-- REQUEST LIST -->
-    <div class="card requests">
-      <h2>Requests</h2>
-      <h3 class="muted">Deposit Requests</h3>
-      <ul id="depositList"></ul>
-      <h3 class="muted">Withdraw Requests</h3>
-      <ul id="withdrawList"></ul>
-    </div>
-
-    <!-- HISTORY -->
-    <div class="card history">
-      <h2>Transaction History</h2>
-      <ul id="historyList"></ul>
-    </div>
+<div class="container">
+  <!-- 左：市场 -->
+  <div class="panel">
+    <h3>Markets</h3>
+    <div class="small">Click a coin to view chart.</div>
+    <div id="markets"></div>
   </div>
 
-  <!-- ✅ 本地 lightweight-charts -->
-  <script src="/js/lightweight-charts.js"></script>
+  <!-- 中：K线 -->
+  <div class="panel">
+    <h3 id="chartTitle">BTC/USDT</h3>
+    <div class="intervals" id="intervals"></div>
+    <div id="chart"></div>
+  </div>
 
-  <script>
-    let currentSymbol = "BTCUSDT";
-    let currentInterval = "1m";
-    let chart, candleSeries;
+  <!-- 右：交易 + 充值提款 -->
+  <div class="panel">
+    <h3>Trade (Demo)</h3>
 
-    async function loadCoins() {
-      const res = await fetch("/api/coins");
-      const coins = await res.json();
+    <div class="row">
+      <span>Buy</span>
+      <div>
+        <input id="buyAmount" type="number" value="0.01" step="0.01">
+        <button class="btn" onclick="buyBTC()">Buy</button>
+      </div>
+    </div>
 
-      document.getElementById("coins").innerHTML =
-        coins.map(c => `<li style="cursor:pointer" onclick="selectCoin('${c.symbol}USDT')">${c.symbol}/USDT</li>`).join("");
-    }
+    <div class="row">
+      <span>Sell</span>
+      <div>
+        <input id="sellAmount" type="number" value="0.01" step="0.01">
+        <button class="btn" onclick="sellBTC()">Sell</button>
+      </div>
+    </div>
 
-    async function loadBalance() {
-      const res = await fetch("/api/balance");
-      const bal = await res.json();
+    <hr style="border:1px solid #1e2329; margin:12px 0;">
 
-      document.getElementById("topBalance").innerText =
-        " | USDT: " + (bal.find(x => x.coin_symbol === "USDT")?.amount || 0);
+    <h3>Deposit Request</h3>
+    <div class="row">
+      <input id="depositAmount" type="number" value="100">
+      <button class="btn" onclick="depositRequest()">Submit</button>
+    </div>
 
-    }
+    <h3>Withdraw Request</h3>
+    <div class="row">
+      <input id="withdrawAmount" type="number" value="50">
+      <button class="btn" onclick="withdrawRequest()">Submit</button>
+    </div>
 
-    async function loadRequests() {
-      const depRes = await fetch("/api/deposit-requests");
-      const dep = await depRes.json();
-      document.getElementById("depositList").innerHTML =
-        dep.map(d => `<li>#${d.id} ${d.coin_symbol} ${d.requested_amount} - ${d.status}</li>`).join("");
+    <div class="small" id="result">Ready.</div>
+    <hr style="border:1px solid #1e2329; margin:12px 0;">
 
-      const wdRes = await fetch("/api/withdraw-requests");
-      const wd = await wdRes.json();
-      document.getElementById("withdrawList").innerHTML =
-        wd.map(w => `<li>#${w.id} ${w.coin_symbol} ${w.requested_amount} - ${w.status}</li>`).join("");
-    }
+    <h3>Requests</h3>
+    <strong>Deposit Requests</strong>
+    <ul id="depositList"></ul>
 
-    async function loadHistory() {
-      const res = await fetch("/api/transactions");
-      const data = await res.json();
-      document.getElementById("historyList").innerHTML =
-        data.map(t => `<li>#${t.id} ${t.type.toUpperCase()} ${t.coin_symbol} ${t.amount} (total: ${t.total})</li>`).join("");
-    }
+    <strong>Withdraw Requests</strong>
+    <ul id="withdrawList"></ul>
 
-    function initChart() {
-      chart = LightweightCharts.createChart(document.getElementById("chartContainer"), {
-        width: document.getElementById("chartContainer").clientWidth,
-        height: 420,
-        layout: { background: { color: "#101418" }, textColor: "#eaecef" },
-        grid: { vertLines: { color: "#1f2a37" }, horzLines: { color: "#1f2a37" } },
-        timeScale: { borderColor: "#2a3645" },
-      });
+    <hr style="border:1px solid #1e2329; margin:12px 0;">
 
-      candleSeries = chart.addCandlestickSeries();
-    }
+    <h3>Transaction History</h3>
+    <ul id="txList"></ul>
+  </div>
+</div>
 
-    async function loadKlines() {
-      const res = await fetch(`/api/klines?symbol=${currentSymbol}&interval=${currentInterval}&limit=200`);
-      const data = await res.json();
-      candleSeries.setData(data);
-    }
+<!-- ✅ 本地引入 Lightweight Charts -->
+<script src="/js/lightweight-charts.js"></script>
 
-    function selectCoin(symbol) {
-      currentSymbol = symbol;
-      document.getElementById("pairTitle").innerText = symbol.replace("USDT", "") + "/USDT";
-      loadKlines();
-    }
+<script>
+  // ========== 状态 ==========
+  const intervals = ["1m","5m","15m","1h","4h","1d"];
+  let currentSymbol = "BTCUSDT";
+  let currentInterval = "1m";
 
-    document.getElementById("intervalButtons").addEventListener("click", (e) => {
-      if (e.target.tagName !== "BUTTON") return;
+  // ========== 图表初始化 ==========
+  const chartContainer = document.getElementById("chart");
+  const chart = LightweightCharts.createChart(chartContainer, {
+    layout: { background: { color: "#11161c" }, textColor: "#eaecef" },
+    grid: { vertLines: { color: "#1e2329" }, horzLines: { color: "#1e2329" } },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+    timeScale: { borderColor: "#1e2329" },
+  });
 
-      document.querySelectorAll("#intervalButtons button").forEach(b => b.classList.remove("active"));
-      e.target.classList.add("active");
+  const candleSeries = chart.addCandlestickSeries({
+    upColor: "#0ecb81",
+    downColor: "#f6465d",
+    borderVisible: false,
+    wickUpColor: "#0ecb81",
+    wickDownColor: "#f6465d",
+  });
 
-      currentInterval = e.target.dataset.interval;
-      loadKlines();
-    });
+  window.addEventListener("resize", () => {
+    chart.applyOptions({ width: chartContainer.clientWidth, height: chartContainer.clientHeight });
+  });
+  chart.applyOptions({ width: chartContainer.clientWidth, height: chartContainer.clientHeight });
 
-    async function buyBTC() {
-      const amount = parseFloat(document.getElementById("buyAmount").value);
-      const res = await fetch("/api/buy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ symbol: "BTC", amount })
-      });
+  // ========== UI：interval 按钮 ==========
+  function renderIntervals() {
+    const el = document.getElementById("intervals");
+    el.innerHTML = intervals.map(i => `
+      <button class="${i === currentInterval ? 'active' : ''}" onclick="setInterval('${i}')">${i}</button>
+    `).join("");
+  }
 
-      const data = await res.json();
-      document.getElementById("result").innerText = JSON.stringify(data);
-      loadBalance();
-      loadHistory();
-    }
-
-    async function sellBTC() {
-      const amount = parseFloat(document.getElementById("sellAmount").value);
-      const res = await fetch("/api/sell", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ symbol: "BTC", amount })
-      });
-
-      const data = await res.json();
-      document.getElementById("result").innerText = JSON.stringify(data);
-      loadBalance();
-      loadHistory();
-    }
-
-    async function depositRequest() {
-      const requested_amount = parseFloat(document.getElementById("depositAmount").value);
-
-      const res = await fetch("/api/deposit-request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ coin_symbol: "USDT", requested_amount })
-      });
-
-      const data = await res.json();
-      document.getElementById("result").innerText = JSON.stringify(data);
-      loadRequests();
-    }
-
-    async function withdrawRequest() {
-      const requested_amount = parseFloat(document.getElementById("withdrawAmount").value);
-
-      const res = await fetch("/api/withdraw-request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ coin_symbol: "USDT", requested_amount, address: "0x123..." })
-      });
-
-      const data = await res.json();
-      document.getElementById("result").innerText = JSON.stringify(data);
-      loadRequests();
-    }
-
-    // ✅ init
-    initChart();
-    loadCoins();
-    loadBalance();
-    loadRequests();
-    loadHistory();
+  function setInterval(i) {
+    currentInterval = i;
+    renderIntervals();
     loadKlines();
-  </script>
+  }
+
+  // ========== 市场列表 ==========
+  const markets = ["BTCUSDT","ETHUSDT","BNBUSDT","SOLUSDT","XRPUSDT","DOGEUSDT"];
+  function renderMarkets() {
+    document.getElementById("markets").innerHTML = markets.map(m => `
+      <div class="market-item ${m===currentSymbol?'active':''}" onclick="selectMarket('${m}')">
+        ${m.replace("USDT","/USDT")}
+      </div>
+    `).join("");
+  }
+
+  function selectMarket(sym) {
+    currentSymbol = sym;
+    document.getElementById("chartTitle").innerText = sym.replace("USDT","/USDT");
+    renderMarkets();
+    loadKlines();
+  }
+
+  // ========== 拉取 K线 ==========
+  async function loadKlines() {
+    try {
+      const res = await fetch(`/api/klines?symbol=${currentSymbol}&interval=${currentInterval}&limit=200`);
+      const raw = await res.json();
+
+      // ✅ 转成 LightweightCharts 需要的格式（必须是数字）
+      const data = raw.map(k => ({
+        time: Math.floor(k[0] / 1000),
+        open: parseFloat(k[1]),
+        high: parseFloat(k[2]),
+        low: parseFloat(k[3]),
+        close: parseFloat(k[4]),
+      }));
+
+      candleSeries.setData(data);
+    } catch (e) {
+      console.error(e);
+      document.getElementById("result").innerText = "Failed to load klines.";
+    }
+  }
+
+  // ========== 余额 ==========
+  async function loadBalance() {
+    const res = await fetch("/api/balance");
+    const bal = await res.json();
+    const usdt = bal.find(b => b.coin_symbol === "USDT")?.amount || 0;
+    document.getElementById("topInfo").innerText = `Account: demo | USDT: ${usdt}`;
+  }
+
+  // ========== 买卖 ==========
+  async function buyBTC() {
+    const amount = parseFloat(document.getElementById("buyAmount").value);
+    const res = await fetch("/api/buy", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ symbol: "BTC", amount })
+    });
+    const data = await res.json();
+    document.getElementById("result").innerText = JSON.stringify(data);
+    loadBalance();
+    loadTransactions();
+  }
+
+  async function sellBTC() {
+    const amount = parseFloat(document.getElementById("sellAmount").value);
+    const res = await fetch("/api/sell", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ symbol: "BTC", amount })
+    });
+    const data = await res.json();
+    document.getElementById("result").innerText = JSON.stringify(data);
+    loadBalance();
+    loadTransactions();
+  }
+
+  // ========== 充值提款请求 ==========
+  async function depositRequest() {
+    const requested_amount = parseFloat(document.getElementById("depositAmount").value);
+    const res = await fetch("/api/deposit-request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ coin_symbol: "USDT", requested_amount })
+    });
+    const data = await res.json();
+    document.getElementById("result").innerText = JSON.stringify(data);
+    loadDeposits();
+  }
+
+  async function withdrawRequest() {
+    const requested_amount = parseFloat(document.getElementById("withdrawAmount").value);
+    const res = await fetch("/api/withdraw-request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ coin_symbol: "USDT", requested_amount, address: "0x123..." })
+    });
+    const data = await res.json();
+    document.getElementById("result").innerText = JSON.stringify(data);
+    loadWithdraws();
+  }
+
+  async function loadDeposits() {
+    const res = await fetch("/api/deposit-requests");
+    const list = await res.json();
+    document.getElementById("depositList").innerHTML =
+      list.map(d => `<li>#${d.id} ${d.coin_symbol} ${d.requested_amount} - ${d.status}</li>`).join("");
+  }
+
+  async function loadWithdraws() {
+    const res = await fetch("/api/withdraw-requests");
+    const list = await res.json();
+    document.getElementById("withdrawList").innerHTML =
+      list.map(w => `<li>#${w.id} ${w.coin_symbol} ${w.requested_amount} - ${w.status}</li>`).join("");
+  }
+
+  async function loadTransactions() {
+    const res = await fetch("/api/transactions");
+    const list = await res.json();
+    document.getElementById("txList").innerHTML =
+      list.map(t => `<li>#${t.id} ${t.type.toUpperCase()} ${t.coin_symbol} ${t.amount} (total: ${t.total})</li>`).join("");
+  }
+
+  // ========== 初始化 ==========
+  renderIntervals();
+  renderMarkets();
+  loadKlines();
+  loadBalance();
+  loadDeposits();
+  loadWithdraws();
+  loadTransactions();
+</script>
 </body>
 </html>
