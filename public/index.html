@@ -3,628 +3,334 @@
 <head>
   <meta charset="UTF-8" />
   <title>Sim Exchange</title>
-
-  <!-- ✅ Lightweight Charts (TradingView style) -->
-  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
-
   <style>
-    body{
-      margin:0;
-      font-family: Arial, Helvetica, sans-serif;
-      background:#0b0f14;
-      color:#e6e6e6;
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0b0e11;
+      color: #eaecef;
+    }
+    header {
+      height: 50px;
+      background: #101418;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      justify-content: space-between;
+      border-bottom: 1px solid #222;
+    }
+    header .left {
+      font-weight: bold;
+      font-size: 16px;
+    }
+    header .right {
+      font-size: 14px;
+      opacity: 0.9;
     }
 
-    .topbar{
-      height:52px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding:0 18px;
-      background:#0f141b;
-      border-bottom:1px solid #202a36;
-      position:sticky;
-      top:0;
-      z-index:1000;
-    }
-    .brand{ font-weight:700; font-size:18px; letter-spacing:0.3px; }
-    .account{ font-size:14px; color:#c9d1d9; }
-
-    .wrap{
-      padding:14px;
-      display:grid;
-      grid-template-columns: 320px 1fr 360px;
-      gap:14px;
+    .container {
+      display: grid;
+      grid-template-columns: 260px 1fr 320px;
+      grid-template-rows: auto 260px 260px;
+      gap: 12px;
+      padding: 12px;
     }
 
-    .panel{
-      background:linear-gradient(180deg,#0f141b,#0b0f14);
-      border:1px solid #1e2835;
-      border-radius:12px;
-      padding:14px;
-      box-shadow:0 0 0 1px rgba(255,255,255,0.02) inset;
-      overflow:hidden;
+    .card {
+      background: #101418;
+      border: 1px solid #1f2a37;
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.02);
     }
 
-    h2{
-      margin:0 0 10px 0;
-      font-size:16px;
-      font-weight:700;
+    .markets { grid-row: 1 / span 3; }
+    .chart { grid-row: 1 / span 2; }
+    .trade { grid-row: 1 / span 1; }
+    .requests { grid-row: 2 / span 1; grid-column: 3; }
+    .history { grid-row: 3; grid-column: 2 / span 2; }
+
+    h2 {
+      font-size: 16px;
+      margin: 0 0 10px;
+      font-weight: bold;
+    }
+    .muted { opacity: 0.7; font-size: 12px; }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      padding: 10px;
+      font-weight: bold;
+      background: #f0b90b;
+      color: #111;
+    }
+    button:hover { opacity: 0.9; }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #2a3645;
+      background: #0b0e11;
+      color: #eaecef;
+      box-sizing: border-box;
     }
 
-    /* Left market list */
-    .marketRow{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding:10px 8px;
-      border-radius:10px;
-      cursor:pointer;
-      border:1px solid transparent;
+    .row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+    .row label { width: 70px; font-size: 13px; }
+    .row input { flex: 1; }
+    .row button { width: 90px; }
+
+    ul { margin: 0; padding-left: 18px; }
+    li { margin-bottom: 6px; }
+
+    .intervals {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
     }
-    .marketRow:hover{
-      background:#0b0f14;
-      border:1px solid #1e2835;
+    .intervals button {
+      background: #0b0e11;
+      color: #eaecef;
+      border: 1px solid #2a3645;
+      padding: 6px 12px;
+      font-weight: normal;
     }
-    .marketLeft{
-      display:flex;
-      align-items:center;
-      gap:10px;
-    }
-    .coinIcon{
-      width:22px;
-      height:22px;
-      border-radius:999px;
-      background:#141b24;
-      border:1px solid #263447;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:12px;
-      color:#f0b90b;
-      font-weight:800;
-    }
-    .coinName{
-      font-weight:700;
-      font-size:14px;
-    }
-    .coinPair{
-      color:#97a6ba;
-      font-size:12px;
-      margin-top:2px;
-    }
-    .price{
-      font-weight:800;
-      color:#eaecef;
+    .intervals button.active {
+      background: #f0b90b;
+      color: #111;
+      font-weight: bold;
     }
 
-    /* Chart area */
-    .chartTop{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      margin-bottom:10px;
+    #chartContainer {
+      height: 420px;
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden;
     }
-    .chartTitle{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      font-weight:800;
-      font-size:16px;
-    }
-    .badge{
-      display:inline-block;
-      padding:2px 8px;
-      border-radius:999px;
-      border:1px solid #2a374a;
-      font-size:12px;
-      color:#a7b6c9;
-    }
-
-    .intervals{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-    }
-    .intervalBtn{
-      padding:6px 10px;
-      border-radius:999px;
-      border:1px solid #263447;
-      background:#0b0f14;
-      color:#c9d1d9;
-      cursor:pointer;
-      font-weight:700;
-      font-size:12px;
-    }
-    .intervalBtn.active{
-      background:#f0b90b;
-      border-color:#f0b90b;
-      color:#111;
-    }
-
-    #chart{
-      width:100%;
-      height:420px;
-      border-radius:12px;
-      border:1px solid #1e2835;
-      background:#0b0f14;
-    }
-
-    /* Trade box */
-    .tradeRow{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      margin:10px 0;
-    }
-    input{
-      width:100%;
-      padding:10px 10px;
-      border-radius:10px;
-      border:1px solid #233044;
-      background:#0b0f14;
-      color:#e6e6e6;
-      outline:none;
-    }
-    button{
-      padding:10px 12px;
-      border-radius:10px;
-      border:none;
-      cursor:pointer;
-      font-weight:800;
-      min-width:84px;
-    }
-    .btn{
-      background:#f0b90b;
-      color:#111;
-    }
-    .btn:hover{ opacity:0.92; }
-
-    .result{
-      margin-top:10px;
-      padding:10px;
-      border-radius:10px;
-      border:1px solid #233044;
-      background:#0b0f14;
-      color:#c9d1d9;
-      font-size:13px;
-      min-height:18px;
-      white-space:pre-wrap;
-      word-break: break-word;
-    }
-
-    /* Bottom sections */
-    .bottom{
-      padding:0 14px 14px;
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:14px;
-    }
-    .fullRow{ grid-column:1 / span 2; }
-    .empty{
-      color:#97a6ba;
-      font-size:13px;
-      padding:6px 0;
-    }
-    ul{ margin:0; padding-left:18px; }
-    li{ margin:6px 0; }
-    .tag{
-      display:inline-block;
-      padding:2px 8px;
-      border-radius:999px;
-      font-size:12px;
-      margin-left:8px;
-      border:1px solid #2a374a;
-      color:#a7b6c9;
-    }
-    .tagPending{ border-color:#6b5d00; color:#f0d76a; }
-    .tagApproved{ border-color:#14532d; color:#7dffb5; }
-    .tagRejected{ border-color:#5c1a1a; color:#ff8a8a; }
-    hr{ border:0;border-top:1px solid #1e2835;margin:14px 0; }
   </style>
 </head>
-
 <body>
-  <div class="topbar">
-    <div class="brand">Sim Exchange</div>
-    <div class="account" id="accountTop">Account: demo</div>
-  </div>
+  <header>
+    <div class="left">Sim Exchange</div>
+    <div class="right">Account: demo <span id="topBalance"></span></div>
+  </header>
 
-  <div class="wrap">
-
-    <!-- LEFT: Markets -->
-    <div class="panel">
+  <div class="container">
+    <!-- MARKETS -->
+    <div class="card markets">
       <h2>Markets</h2>
-      <div id="marketList"></div>
-      <div style="margin-top:10px;color:#97a6ba;font-size:12px;">
-        Click a coin to view chart.
-      </div>
+      <p class="muted">Click a coin to view chart.</p>
+      <ul id="coins"></ul>
     </div>
 
-    <!-- CENTER: Chart -->
-    <div class="panel">
-      <div class="chartTop">
-        <div class="chartTitle">
-          <span id="chartSymbol">BTC/USDT</span>
-          <span class="badge" id="chartPrice">--</span>
-        </div>
+    <!-- CHART -->
+    <div class="card chart">
+      <h2 id="pairTitle">BTC/USDT</h2>
 
-        <div class="intervals" id="intervals">
-          <button class="intervalBtn active" data-i="1m">1m</button>
-          <button class="intervalBtn" data-i="5m">5m</button>
-          <button class="intervalBtn" data-i="15m">15m</button>
-          <button class="intervalBtn" data-i="1h">1h</button>
-          <button class="intervalBtn" data-i="4h">4h</button>
-          <button class="intervalBtn" data-i="1d">1d</button>
-        </div>
+      <div class="intervals" id="intervalButtons">
+        <button class="active" data-interval="1m">1m</button>
+        <button data-interval="5m">5m</button>
+        <button data-interval="15m">15m</button>
+        <button data-interval="1h">1h</button>
+        <button data-interval="4h">4h</button>
+        <button data-interval="1d">1d</button>
       </div>
 
-      <div id="chart"></div>
-      <div class="result" id="chartHint">Chart ready.</div>
+      <div id="chartContainer"></div>
     </div>
 
-    <!-- RIGHT: Trade -->
-    <div class="panel">
-      <h2>Trade <span class="tag">Demo</span></h2>
+    <!-- TRADE -->
+    <div class="card trade">
+      <h2>Trade <span class="muted">(Demo)</span></h2>
 
-      <div class="tradeRow">
-        <div style="min-width:70px;">Buy</div>
+      <div class="row">
+        <label>Buy</label>
         <input id="buyAmount" type="number" value="0.01" step="0.01">
-        <button class="btn" onclick="buy()">Buy</button>
+        <button onclick="buyBTC()">Buy</button>
       </div>
 
-      <div class="tradeRow">
-        <div style="min-width:70px;">Sell</div>
+      <div class="row">
+        <label>Sell</label>
         <input id="sellAmount" type="number" value="0.01" step="0.01">
-        <button class="btn" onclick="sell()">Sell</button>
+        <button onclick="sellBTC()">Sell</button>
       </div>
 
-      <hr>
-
-      <div class="tradeRow">
-        <div style="min-width:120px;">Deposit Request</div>
-        <input id="depositAmount" type="number" value="100" step="1">
-        <button class="btn" onclick="depositRequest()">Submit</button>
+      <h2>Deposit Request</h2>
+      <div class="row">
+        <input id="depositAmount" type="number" value="100">
+        <button onclick="depositRequest()">Submit</button>
       </div>
 
-      <div class="tradeRow">
-        <div style="min-width:120px;">Withdraw Request</div>
-        <input id="withdrawAmount" type="number" value="50" step="1">
-        <button class="btn" onclick="withdrawRequest()">Submit</button>
+      <h2>Withdraw Request</h2>
+      <div class="row">
+        <input id="withdrawAmount" type="number" value="50">
+        <button onclick="withdrawRequest()">Submit</button>
       </div>
 
-      <div class="result" id="result">Ready.</div>
+      <p id="result" class="muted">Ready.</p>
     </div>
 
-  </div>
-
-  <!-- BOTTOM -->
-  <div class="bottom">
-    <div class="panel">
-      <h2>Balance</h2>
-      <ul id="balance"></ul>
-    </div>
-
-    <div class="panel">
+    <!-- REQUEST LIST -->
+    <div class="card requests">
       <h2>Requests</h2>
-
-      <h3 style="margin:10px 0 6px 0;font-size:14px;">Deposit Requests</h3>
-      <div id="depositRequestsBox"></div>
-
-      <h3 style="margin:14px 0 6px 0;font-size:14px;">Withdraw Requests</h3>
-      <div id="withdrawRequestsBox"></div>
+      <h3 class="muted">Deposit Requests</h3>
+      <ul id="depositList"></ul>
+      <h3 class="muted">Withdraw Requests</h3>
+      <ul id="withdrawList"></ul>
     </div>
 
-    <div class="panel fullRow">
+    <!-- HISTORY -->
+    <div class="card history">
       <h2>Transaction History</h2>
-      <div id="txBox"></div>
+      <ul id="historyList"></ul>
     </div>
   </div>
 
-<script>
-  // =========================
-  // ✅ Global State
-  // =========================
-  let selectedCoin = "BTC";         // BTC
-  let selectedPair = "BTCUSDT";     // BTCUSDT
-  let selectedInterval = "1m";
+  <!-- ✅ 本地 lightweight-charts -->
+  <script src="/js/lightweight-charts.js"></script>
 
-  // =========================
-  // ✅ UI Helpers
-  // =========================
-  function statusTag(status){
-    if(status === "pending") return `<span class="tag tagPending">pending</span>`;
-    if(status === "approved") return `<span class="tag tagApproved">approved</span>`;
-    if(status === "rejected") return `<span class="tag tagRejected">rejected</span>`;
-    return `<span class="tag">${status}</span>`;
-  }
-  function setResult(obj){
-    document.getElementById("result").innerText =
-      (typeof obj === "string") ? obj : JSON.stringify(obj, null, 2);
-  }
-  function setChartHint(msg){
-    document.getElementById("chartHint").innerText = msg;
-  }
-  function iconText(symbol){
-    // simple avatar text (first letter)
-    return symbol.slice(0,1);
-  }
+  <script>
+    let currentSymbol = "BTCUSDT";
+    let currentInterval = "1m";
+    let chart, candleSeries;
 
-  // =========================
-  // ✅ Chart Setup
-  // =========================
-  const chartContainer = document.getElementById("chart");
-  const chart = LightweightCharts.createChart(chartContainer, {
-    layout: {
-      background: { color: "#0b0f14" },
-      textColor: "#c9d1d9",
-    },
-    grid: {
-      vertLines: { color: "#1e2835" },
-      horzLines: { color: "#1e2835" },
-    },
-    rightPriceScale: {
-      borderColor: "#1e2835",
-    },
-    timeScale: {
-      borderColor: "#1e2835",
-      timeVisible: true,
-      secondsVisible: false,
+    async function loadCoins() {
+      const res = await fetch("/api/coins");
+      const coins = await res.json();
+
+      document.getElementById("coins").innerHTML =
+        coins.map(c => `<li style="cursor:pointer" onclick="selectCoin('${c.symbol}USDT')">${c.symbol}/USDT</li>`).join("");
     }
-  });
 
-  const candleSeries = chart.addCandlestickSeries({
-    upColor: "#0ecb81",
-    downColor: "#f6465d",
-    borderDownColor: "#f6465d",
-    borderUpColor: "#0ecb81",
-    wickDownColor: "#f6465d",
-    wickUpColor: "#0ecb81",
-  });
+    async function loadBalance() {
+      const res = await fetch("/api/balance");
+      const bal = await res.json();
 
-  window.addEventListener("resize", () => {
-    chart.applyOptions({ width: chartContainer.clientWidth });
-  });
+      document.getElementById("topBalance").innerText =
+        " | USDT: " + (bal.find(x => x.coin_symbol === "USDT")?.amount || 0);
 
-  // =========================
-  // ✅ Load Markets (from /api/coins)
-  // =========================
-  async function loadMarkets(){
-    const res = await fetch("/api/coins");
-    const coins = await res.json();
-
-    // Only show non-USDT coins as market list (BTC/ETH/BNB/etc)
-    const list = coins.filter(c => c.symbol !== "USDT");
-
-    document.getElementById("marketList").innerHTML = list.map(c => {
-      const active = (c.symbol === selectedCoin) ? "style='background:#0b0f14;border:1px solid #1e2835;'" : "";
-      return `
-        <div class="marketRow" ${active} onclick="selectMarket('${c.symbol}', ${c.price})">
-          <div class="marketLeft">
-            <div class="coinIcon">${iconText(c.symbol)}</div>
-            <div>
-              <div class="coinName">${c.symbol}</div>
-              <div class="coinPair">${c.symbol}/USDT</div>
-            </div>
-          </div>
-          <div class="price">${c.price}</div>
-        </div>
-      `;
-    }).join("");
-
-    // update top price badge if selected coin exists
-    const now = coins.find(x=>x.symbol===selectedCoin);
-    if(now){
-      document.getElementById("chartPrice").innerText = now.price + " USDT";
     }
-  }
 
-  function selectMarket(symbol, price){
-    selectedCoin = symbol;
-    selectedPair = symbol + "USDT";
-    document.getElementById("chartSymbol").innerText = symbol + "/USDT";
-    document.getElementById("chartPrice").innerText = price + " USDT";
-    loadMarkets();
-    loadKlines();
-  }
+    async function loadRequests() {
+      const depRes = await fetch("/api/deposit-requests");
+      const dep = await depRes.json();
+      document.getElementById("depositList").innerHTML =
+        dep.map(d => `<li>#${d.id} ${d.coin_symbol} ${d.requested_amount} - ${d.status}</li>`).join("");
 
-  // =========================
-  // ✅ Klines
-  // =========================
-  async function loadKlines(){
-    try{
-      setChartHint(`Loading klines: ${selectedPair} / ${selectedInterval} ...`);
+      const wdRes = await fetch("/api/withdraw-requests");
+      const wd = await wdRes.json();
+      document.getElementById("withdrawList").innerHTML =
+        wd.map(w => `<li>#${w.id} ${w.coin_symbol} ${w.requested_amount} - ${w.status}</li>`).join("");
+    }
 
-      // ✅ This endpoint should exist in server.js:
-      // GET /api/klines?symbol=BTCUSDT&interval=1m
-      const url = `/api/klines?symbol=${selectedPair}&interval=${selectedInterval}`;
-      const res = await fetch(url);
+    async function loadHistory() {
+      const res = await fetch("/api/transactions");
       const data = await res.json();
+      document.getElementById("historyList").innerHTML =
+        data.map(t => `<li>#${t.id} ${t.type.toUpperCase()} ${t.coin_symbol} ${t.amount} (total: ${t.total})</li>`).join("");
+    }
 
-      // data format expected: [{time, open, high, low, close}, ...]
-      if(!Array.isArray(data)){
-        setChartHint("Kline API returned error. If chart is empty, we need to add /api/klines in server.js.");
-        candleSeries.setData([]);
-        return;
-      }
+    function initChart() {
+      chart = LightweightCharts.createChart(document.getElementById("chartContainer"), {
+        width: document.getElementById("chartContainer").clientWidth,
+        height: 420,
+        layout: { background: { color: "#101418" }, textColor: "#eaecef" },
+        grid: { vertLines: { color: "#1f2a37" }, horzLines: { color: "#1f2a37" } },
+        timeScale: { borderColor: "#2a3645" },
+      });
 
+      candleSeries = chart.addCandlestickSeries();
+    }
+
+    async function loadKlines() {
+      const res = await fetch(`/api/klines?symbol=${currentSymbol}&interval=${currentInterval}&limit=200`);
+      const data = await res.json();
       candleSeries.setData(data);
-      chart.timeScale().fitContent();
-
-      setChartHint(`Loaded ${data.length} candles ✅ (${selectedInterval})`);
-    }catch(e){
-      setChartHint("Failed to load klines. We need to add /api/klines in server.js.");
-      candleSeries.setData([]);
     }
-  }
 
-  // interval buttons
-  document.getElementById("intervals").addEventListener("click", (e) => {
-    const btn = e.target.closest(".intervalBtn");
-    if(!btn) return;
-    selectedInterval = btn.dataset.i;
+    function selectCoin(symbol) {
+      currentSymbol = symbol;
+      document.getElementById("pairTitle").innerText = symbol.replace("USDT", "") + "/USDT";
+      loadKlines();
+    }
 
-    // active style
-    document.querySelectorAll(".intervalBtn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
+    document.getElementById("intervalButtons").addEventListener("click", (e) => {
+      if (e.target.tagName !== "BUTTON") return;
 
+      document.querySelectorAll("#intervalButtons button").forEach(b => b.classList.remove("active"));
+      e.target.classList.add("active");
+
+      currentInterval = e.target.dataset.interval;
+      loadKlines();
+    });
+
+    async function buyBTC() {
+      const amount = parseFloat(document.getElementById("buyAmount").value);
+      const res = await fetch("/api/buy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symbol: "BTC", amount })
+      });
+
+      const data = await res.json();
+      document.getElementById("result").innerText = JSON.stringify(data);
+      loadBalance();
+      loadHistory();
+    }
+
+    async function sellBTC() {
+      const amount = parseFloat(document.getElementById("sellAmount").value);
+      const res = await fetch("/api/sell", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symbol: "BTC", amount })
+      });
+
+      const data = await res.json();
+      document.getElementById("result").innerText = JSON.stringify(data);
+      loadBalance();
+      loadHistory();
+    }
+
+    async function depositRequest() {
+      const requested_amount = parseFloat(document.getElementById("depositAmount").value);
+
+      const res = await fetch("/api/deposit-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ coin_symbol: "USDT", requested_amount })
+      });
+
+      const data = await res.json();
+      document.getElementById("result").innerText = JSON.stringify(data);
+      loadRequests();
+    }
+
+    async function withdrawRequest() {
+      const requested_amount = parseFloat(document.getElementById("withdrawAmount").value);
+
+      const res = await fetch("/api/withdraw-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ coin_symbol: "USDT", requested_amount, address: "0x123..." })
+      });
+
+      const data = await res.json();
+      document.getElementById("result").innerText = JSON.stringify(data);
+      loadRequests();
+    }
+
+    // ✅ init
+    initChart();
+    loadCoins();
+    loadBalance();
+    loadRequests();
+    loadHistory();
     loadKlines();
-  });
-
-  // =========================
-  // ✅ Balance + Top Right
-  // =========================
-  async function loadBalance() {
-    const res = await fetch("/api/balance");
-    const bal = await res.json();
-
-    document.getElementById("balance").innerHTML =
-      bal.map(b => `<li>${b.coin_symbol}: ${b.amount}</li>`).join("");
-
-    const usdt = bal.find(x => x.coin_symbol === "USDT")?.amount ?? 0;
-    const btc  = bal.find(x => x.coin_symbol === "BTC")?.amount ?? 0;
-    document.getElementById("accountTop").innerText =
-      `Account: demo | USDT: ${usdt} | BTC: ${btc}`;
-  }
-
-  // =========================
-  // ✅ Trade (Buy/Sell selectedCoin)
-  // =========================
-  async function buy() {
-    const amount = parseFloat(document.getElementById("buyAmount").value);
-    const res = await fetch("/api/buy", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ symbol: selectedCoin, amount })
-    });
-    const data = await res.json();
-    setResult(data);
-    await loadBalance();
-    await loadTransactions();
-    await loadMarkets();
-  }
-
-  async function sell() {
-    const amount = parseFloat(document.getElementById("sellAmount").value);
-    const res = await fetch("/api/sell", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ symbol: selectedCoin, amount })
-    });
-    const data = await res.json();
-    setResult(data);
-    await loadBalance();
-    await loadTransactions();
-    await loadMarkets();
-  }
-
-  // =========================
-  // ✅ Deposit / Withdraw
-  // =========================
-  async function depositRequest(){
-    const requested_amount = parseFloat(document.getElementById("depositAmount").value);
-    const res = await fetch("/api/deposit-request", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ coin_symbol:"USDT", requested_amount })
-    });
-    const data = await res.json();
-    setResult(data);
-    await loadDeposits();
-  }
-
-  async function withdrawRequest(){
-    const requested_amount = parseFloat(document.getElementById("withdrawAmount").value);
-    const address = "0x123..."; // demo
-    const res = await fetch("/api/withdraw-request", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ coin_symbol:"USDT", requested_amount, address })
-    });
-    const data = await res.json();
-    setResult(data);
-    await loadWithdraws();
-  }
-
-  // =========================
-  // ✅ Requests lists
-  // =========================
-  async function loadDeposits(){
-    const res = await fetch("/api/deposit-requests");
-    const list = await res.json();
-    if(!list || list.length === 0){
-      document.getElementById("depositRequestsBox").innerHTML =
-        `<div class="empty">No deposit requests.</div>`;
-      return;
-    }
-    document.getElementById("depositRequestsBox").innerHTML =
-      `<ul>` + list.map(d =>
-        `<li>#${d.id} ${d.coin_symbol} ${d.requested_amount} ${statusTag(d.status)}</li>`
-      ).join("") + `</ul>`;
-  }
-
-  async function loadWithdraws(){
-    const res = await fetch("/api/withdraw-requests");
-    const list = await res.json();
-    if(!list || list.length === 0){
-      document.getElementById("withdrawRequestsBox").innerHTML =
-        `<div class="empty">No withdraw requests.</div>`;
-      return;
-    }
-    document.getElementById("withdrawRequestsBox").innerHTML =
-      `<ul>` + list.map(w =>
-        `<li>#${w.id} ${w.coin_symbol} ${w.requested_amount} ${statusTag(w.status)}</li>`
-      ).join("") + `</ul>`;
-  }
-
-  // =========================
-  // ✅ Transaction history
-  // =========================
-  async function loadTransactions(){
-    const res = await fetch("/api/transactions");
-    const tx = await res.json();
-    if(!tx || tx.length === 0){
-      document.getElementById("txBox").innerHTML =
-        `<div class="empty">No transactions yet.</div>`;
-      return;
-    }
-
-    document.getElementById("txBox").innerHTML =
-      `<ul>` + tx.map(t => {
-        const type = (t.type || "").toUpperCase();
-        if(t.type === "buy" || t.type === "sell"){
-          return `<li>#${t.id} ${type} ${t.coin_symbol} ${t.amount} @ ${t.price} = ${t.total}</li>`;
-        } else {
-          return `<li>#${t.id} ${type} ${t.coin_symbol} ${t.amount} (total: ${t.total})</li>`;
-        }
-      }).join("") + `</ul>`;
-  }
-
-  // =========================
-  // ✅ Auto price refresh (optional)
-  // =========================
-  setInterval(async () => {
-    await loadMarkets();
-    await loadBalance();
-  }, 6000);
-
-  // =========================
-  // ✅ Init
-  // =========================
-  (async function init(){
-    await loadMarkets();
-    await loadBalance();
-    await loadDeposits();
-    await loadWithdraws();
-    await loadTransactions();
-
-    // default chart
-    document.getElementById("chartSymbol").innerText = selectedCoin + "/USDT";
-    await loadKlines();
-  })();
-</script>
-
+  </script>
 </body>
 </html>
