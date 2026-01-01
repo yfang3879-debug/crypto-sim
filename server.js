@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const fetch = require("node-fetch"); // ✅ node-fetch v2
 const db = require("./db");
 
 const app = express();
@@ -17,11 +18,6 @@ app.use(express.static("public"));
  * =========================
  * ✅ 简单管理员认证（只保护 /api/admin）
  * =========================
- * 说明：
- * - 普通用户 API 不需要登录（否则前端空白）
- * - 后台管理 API 必须带 ?key=xxx 才能访问（最简单安全）
- *
- * 你可以改 ADMIN_KEY 为你自己的密码，例如 "888888"
  */
 const ADMIN_KEY = process.env.ADMIN_KEY || "admin123";
 
@@ -32,6 +28,70 @@ app.use("/api/admin", (req, res, next) => {
     return res.status(401).json({ error: "Unauthorized (admin only)" });
   }
   next();
+});
+
+/**
+ * =========================
+ * ✅ Binance 公共接口（K线）
+ * =========================
+ * 前端会请求：
+ * /api/klines?symbol=BTCUSDT&interval=1m
+ * 我们这里代理到 Binance API：
+ * https://api.binance.com/api/v3/klines
+ */
+app.get("/api/klines", async (req, res) => {
+  try {
+    const symbol = (req.query.symbol || "BTCUSDT").toUpperCase();
+    const interval = req.query.interval || "1m";
+    const limit = parseInt(req.query.limit || "200", 10);
+
+    // ✅ Binance 支持的 interval: 1m, 3m, 5m, 15m, 30m, 1h, 4h, 1d ...
+    const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+
+    const r = await fetch(url, {
+      headers: {
+        "User-Agent": "crypto-sim"
+      }
+    });
+
+    if (!r.ok) {
+      const text = await r.text();
+      return res.status(500).json({ error: "Binance API error", detail: text });
+    }
+
+    const raw = await r.json();
+
+    // ✅ Binance 返回数组格式：
+    // [ openTime, open, high, low, close, volume, closeTime, ... ]
+    // 我们转换成 lightweight-charts 需要的格式：
+    // { time: 秒级时间戳, open, high, low, close }
+    const candles = raw.map(k => ({
+      time: Math.floor(k[0] / 1000),
+      open: parseFloat(k[1]),
+      high: parseFloat(k[2]),
+      low: parseFloat(k[3]),
+      close: parseFloat(k[4]),
+    }));
+
+    res.json(candles);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * ✅ 可选：获取某币最新价格（不一定要用）
+ */
+app.get("/api/price", async (req, res) => {
+  try {
+    const symbol = (req.query.symbol || "BTCUSDT").toUpperCase();
+    const url = `https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`;
+    const r = await fetch(url);
+    const data = await r.json();
+    res.json(data); // {symbol, price}
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 /**
@@ -306,6 +366,6 @@ app.post("/api/admin/withdraws/:id/approve", (req, res) => {
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
 // ✅ 启动
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
